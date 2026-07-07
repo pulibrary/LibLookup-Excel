@@ -7,7 +7,7 @@
 
 var totalResults = -1
 const increment = 50
-const libLookupDomain = "http://localhost:3950/"
+const libLookupDomain = "https://localhost:3950/"
 
 Office.onReady((info) => {
   if (info.host === Office.HostType.Excel) {
