@@ -17,6 +17,12 @@ Office.onReady((info) => {
       fetch(homepageURL).then(response => { 
         response.text().then((form) => {
           document.querySelector('#content').innerHTML = form
+          document.querySelector("form").querySelectorAll("script").forEach((script) => {
+            var newScript = document.createElement('script')
+            newScript.src = script.src
+            newScript.type = script.type
+            document.head.appendChild(newScript);
+          })
           updateStatus("Ready")
 
           var queryStringField = document.querySelector('#queryString')

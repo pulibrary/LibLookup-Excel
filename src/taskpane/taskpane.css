@@ -11,7 +11,6 @@
      padding: 0;
      background-color: #FFFFFF;
      color: #333333;
-     margin: 10px;
  }
  
  ul {
@@ -21,10 +20,6 @@
 
 b {
     font-weight: bold;
-}
-
-form div {
-    padding: 5px
 }
 
 
