@@ -25,11 +25,11 @@ Office.onReady((info) => {
           })
           updateStatus("Ready")
 
-          var queryStringField = document.querySelector('#queryString')
+          var queryTermField = document.querySelector('#queryTerm')
           document.querySelector('#insertSelectionButton').addEventListener('click', function() {    
             getSelectedRange().then((range) => {
               range = range.replace(/.*!/,'')
-              queryStringField.value = `[[${range}]]`
+              queryTermField.value = `[[${range}]]`
             })      
           })
       
@@ -56,17 +56,22 @@ Office.onReady((info) => {
           
             updateStatus("Searching...")
 
-            const batchRange = query.match(/\[\[([^\]]+)\]\]/)
+            var queryDecoded = decodeURIComponent(query)
+            const batchRanges = queryDecoded.match(/\[\[[^\]]+\]\]/g)?.map(range => range.replace(/^\[\[/,'').replace(/\]\]$/,''))
             var queryBatch = []
           
-            if(batchRange) { //batch mode
-              startRow = parseInt(batchRange[1].match(/\d+/)?.[0])-1
-              getRangeValues(batchRange[1]).then((rangeValues) => {
-                for(var i = 0; i < rangeValues.length; i++) {
-                  const thisQuery = query.replace(/\[\[[^\]]+\]\]/,rangeValues[i])                  
-                  const queryURL = libLookupDomain + '?format=json&catalog=' + catalog + '&q=' + thisQuery + '&displayFields=' + fields + '&start=1&maxRecs=' + maxRecs     
+            if(batchRanges) { //batch mode
+              startRow = parseInt(batchRanges.join().match(/\d+/)?.[0])-1
+              getRangeValues(batchRanges).then((rangeValues) => {
+                for(var i = 0; i < rangeValues[0].length; i++) {
+                  var thisQuery = queryDecoded
+                  for(var j = 0; j < rangeValues.length; j++) {
+                    thisQuery = thisQuery.replace(/\[\[[^\]]+\]\]/,rangeValues[j][i])    
+                  }  
+                  const queryURL = libLookupDomain + '?format=json&catalog=' + catalog + '&q=' + 
+                    encodeURIComponent(thisQuery) + '&displayFields=' + fields + '&start=1&maxRecs=' + maxRecs     
                   queryBatch.push(queryURL)               
-                } 
+                }  
                 getFirstEmptyColumn().then((column) => {
                   startColumn = column
                   readyForNext = true
@@ -114,7 +119,7 @@ Office.onReady((info) => {
               const queryURL = queryBatch[i]
               fetch(queryURL).then((data) => {
                 data.json().then((tableJSON) => {
-                  if(batchRange) { //batch mode
+                  if(batchRanges) { //batch mode
                     updateStatus("Searching row " + (i+1) + " of " + queryBatch.length)
                     writeToSheet(tableJSON.records.slice(0,2),startRow+i,startColumn,true).then(() => {
                       completeQueries++
@@ -129,7 +134,7 @@ Office.onReady((info) => {
                       completeQueries++
                     })            
                   }
-                  if(i>0 || batchRange) {
+                  if(i>0 || batchRanges) {
                     i++
                     readyForNext = true                        
                   }
@@ -200,19 +205,21 @@ Office.context.addHandlerAsync(
 );
 */
 
-export async function getRangeValues(rangeString) {
+export async function getRangeValues(ranges) {
   var values = []
-  try {
-    await Excel.run(async (context) => {
-      const sheet = context.workbook.worksheets.getActiveWorksheet();
-      const selectedRange = sheet.getRange(rangeString)
-      selectedRange.load('values')
-      await context.sync()
-      values = selectedRange.values
-    })
-  } catch(error) {
-    console.error(error)
-  }
+    try {
+      await Excel.run(async (context) => {
+        const sheet = context.workbook.worksheets.getActiveWorksheet();
+        for(var i = 0; i < ranges.length; i++) {
+          const selectedRange = sheet.getRange(ranges[i])
+          selectedRange.load('values')
+          await context.sync()
+          values.push(selectedRange.values)
+        }
+      })
+    } catch(error) {
+      console.error(error)
+    }
   return values
 }
 
@@ -246,7 +253,7 @@ export async function getSelectedRange() {
         await context.sync()
         var selectedRows = range.rowCount
         if(lastRow.rowIndex < selectedRows) {
-          var truncRange = sheet.getRangeByIndexes(1,range.columnIndex,lastRow.rowIndex,1)
+          var truncRange = sheet.getRangeByIndexes(0,range.columnIndex,lastRow.rowIndex+1,1)
           truncRange.load('address')
           await context.sync()
           rangeAddress = truncRange.address
