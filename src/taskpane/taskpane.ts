@@ -23,7 +23,6 @@ Office.onReady((info) => {
             newScript.type = script.type
             document.head.appendChild(newScript);
           })
-          updateStatus("Ready")
 
           var queryTermField = document.querySelector('#queryTerm')
           document.querySelector('#insertSelectionButton').addEventListener('click', function() {    
