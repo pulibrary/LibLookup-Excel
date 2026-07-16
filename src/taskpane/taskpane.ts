@@ -157,15 +157,22 @@ export async function writeToSheet(tableJSON,startRow,startColumn,append) {
   try {
     await Excel.run(async (context) => {
       const sheet = context.workbook.worksheets.getActiveWorksheet();
+
+      var numrows = tableJSON.length - 1
+      var numcols = tableJSON[0].length - 1
+
       if(!append) {
         sheet.getUsedRange().clear();
       } else {
         tableJSON = tableJSON.slice(1)
-      } 
-      if(!tableJSON || tableJSON.length == 0) {
-        return
       }  
-      const range = sheet.getRangeByIndexes(startRow,startColumn,tableJSON.length,tableJSON[0].length-1);
+
+      if(numrows == 0) {
+        tableJSON = [new Array(numcols+1).fill("")]
+        numrows = 1
+      }
+
+      const range = sheet.getRangeByIndexes(startRow,startColumn,numrows,numcols);
       range.numberFormat = [["@"]];
       range.format.wrapText = false
       range.values = tableJSON.map(function(row: Array<string>) { return row.slice(1)});
