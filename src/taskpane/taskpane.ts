@@ -126,6 +126,7 @@ Office.onReady((info) => {
                       completeQueries++
                     })           
                   } else { //query mode
+                    console.log(tableJSON)
                     updateStatus("Retrieved " + Math.min(((i+1)*increment),maxRecs,totalResults) + " of " + Math.min(maxRecs,totalResults) + "  records")                    
                     writeToSheet(tableJSON.records,(i>0) ? (i*increment+1) : 0,0,(i>0)).then(() => {
                       if(i == 0) {
@@ -163,6 +164,7 @@ export async function writeToSheet(tableJSON,startRow,startColumn,append) {
 
       if(!append) {
         sheet.getUsedRange().clear();
+        numrows++
       } else {
         tableJSON = tableJSON.slice(1)
       }  
@@ -173,6 +175,7 @@ export async function writeToSheet(tableJSON,startRow,startColumn,append) {
       }
 
       const range = sheet.getRangeByIndexes(startRow,startColumn,numrows,numcols);
+      console.log(startRow,startColumn,numrows,numcols)
       range.numberFormat = [["@"]];
       range.format.wrapText = false
       range.values = tableJSON.map(function(row: Array<string>) { return row.slice(1)});
