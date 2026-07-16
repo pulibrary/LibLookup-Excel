@@ -29,7 +29,11 @@ Office.onReady((info) => {
             document.querySelector("#startrow").value = 1
             document.querySelector("#endrow").value = maxrow
           })      
-      
+
+          getFirstEmptyColumn().then((column) => {
+            document.querySelector("#resultColumn").value = column
+          })
+
           document.querySelector('#abortButton').addEventListener('click', function() {        
             abort = true
           })
@@ -61,6 +65,7 @@ Office.onReady((info) => {
           
             if(batchRanges) { //batch mode
               startRow = parseInt(batchRanges.join().match(/\d+/)?.[0])-1
+              startColumn = columnLetterToNumber(document.querySelector("#resultColumn").value)
               getRangeValues(batchRanges).then((rangeValues) => {
                 for(var i = 0; i < rangeValues[0].length; i++) {
                   var thisQuery = queryDecoded
@@ -71,10 +76,7 @@ Office.onReady((info) => {
                     encodeURIComponent(thisQuery) + '&displayFields=' + fields + '&start=1&maxRecs=' + maxRecs     
                   queryBatch.push(queryURL)               
                 }  
-                getFirstEmptyColumn().then((column) => {
-                  startColumn = column
-                  readyForNext = true
-                })
+                readyForNext = true
               })                      
             } else { //query mode
               const initialURL = libLookupDomain + '?format=json&catalog=' + catalog + '&q=' + query + '&displayFields=' + fields + '&start=1&maxRecs=1'
@@ -148,8 +150,6 @@ Office.onReady((info) => {
     } catch(error) {
       console.error(error);
     }
-    //document.getElementById("sideload-msg").style.display = "none";
-    //document.getElementById("app-body").style.display = "flex";    
   }
 });
 
@@ -193,16 +193,9 @@ function detectOfficeTheme() {
   }
 }
 
-// Run on initialize
 Office.onReady(function(info) {
     detectOfficeTheme();
 });
-/*
-Office.context.addHandlerAsync(
-    Office.EventType.OfficeThemeChanged,
-    detectOfficeTheme()
-);
-*/
 
 export async function getRangeValues(ranges) {
   var values = []
@@ -223,20 +216,36 @@ export async function getRangeValues(ranges) {
 }
 
 export async function getFirstEmptyColumn() {
-  var columnNumber = 0
+  var column = ""
   try {
     await Excel.run(async (context) => {
       const sheet = context.workbook.worksheets.getActiveWorksheet();
       const usedRange = sheet.getUsedRange();
       const lastColumn = usedRange.getLastColumn();
-      lastColumn.load(["columnIndex", "address"]);
+      lastColumn.load("columnIndex");
       await context.sync();
-      columnNumber = lastColumn.columnIndex + 1
+      const firstEmptyColumn = sheet.getCell(1,lastColumn.columnIndex+1)
+      
+      firstEmptyColumn.load("address")
+      await context.sync();          
+      console.log(firstEmptyColumn.address)  
+      column = firstEmptyColumn.address.replace(/^[^!]+!/,'').replace(/[^A-Z].*/,'')
     })
   } catch(error) {
     console.error(error)
   }
-  return columnNumber
+  return column
+}
+
+function columnLetterToNumber(letter) {
+  let columnNumber = 0;
+  let cleanLetter = letter.toUpperCase();
+  
+  for (let i = 0; i < cleanLetter.length; i++) {
+    columnNumber = columnNumber * 26 + (cleanLetter.charCodeAt(i) - 64);
+  }
+  
+  return columnNumber-1;
 }
 
 export async function getMaxUsedRow() {
