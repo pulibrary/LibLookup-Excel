@@ -23,14 +23,12 @@ Office.onReady((info) => {
             newScript.type = script.type
             document.head.appendChild(newScript);
           })
-
-          var queryTermField = document.querySelector('#queryTerm')
-          document.querySelector('#insertSelectionButton').addEventListener('click', function() {    
-            getSelectedRange().then((range) => {
-              range = range.replace(/.*!/,'')
-              queryTermField.value = `[[${range}]]`
-            })      
-          })
+  
+          
+          getMaxUsedRow().then((maxrow) => {
+            document.querySelector("#startrow").value = 1
+            document.querySelector("#endrow").value = maxrow
+          })      
       
           document.querySelector('#abortButton').addEventListener('click', function() {        
             abort = true
@@ -56,7 +54,9 @@ Office.onReady((info) => {
             updateStatus("Searching...")
 
             var queryDecoded = decodeURIComponent(query)
-            const batchRanges = queryDecoded.match(/\[\[[^\]]+\]\]/g)?.map(range => range.replace(/^\[\[/,'').replace(/\]\]$/,''))
+            var rangeStart = document.querySelector("#startrow").value
+            var rangeEnd = document.querySelector("#endrow").value
+            const batchRanges = queryDecoded.match(/\[\[[^\]]+\]\]/g)?.map(range => range.replace(/\[\[([A-Z]+)\]\]/g, "$1" + rangeStart + ":$1" + rangeEnd))
             var queryBatch = []
           
             if(batchRanges) { //batch mode
@@ -239,32 +239,20 @@ export async function getFirstEmptyColumn() {
   return columnNumber
 }
 
-export async function getSelectedRange() {
-  var rangeAddress = ""
+export async function getMaxUsedRow() {
+  var lastRowIndex = 1
   try {
     await Excel.run(async (context) => {
-      const range = context.workbook.getSelectedRange()
       const sheet = context.workbook.worksheets.getActiveWorksheet()
       const lastRow = sheet.getUsedRange().getLastRow()
-      if(range != null) {
-        range.load('columnIndex, rowIndex, rowCount, columnCount, address');
-        lastRow.load('rowIndex')
-        await context.sync()
-        var selectedRows = range.rowCount
-        if(lastRow.rowIndex < selectedRows) {
-          var truncRange = sheet.getRangeByIndexes(0,range.columnIndex,lastRow.rowIndex+1,1)
-          truncRange.load('address')
-          await context.sync()
-          rangeAddress = truncRange.address
-        } else {
-          rangeAddress = range.address
-        }
-      }
+      lastRow.load('rowIndex')
+      await context.sync()
+      lastRowIndex = lastRow.rowIndex+1
     })
   } catch(error) {
     console.error(error)
   }
-  return rangeAddress
+  return lastRowIndex
 }
 
 export async function runQuery(queryURL) {   
