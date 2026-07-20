@@ -24,11 +24,10 @@ Office.onReady((info) => {
             document.head.appendChild(newScript);
           })
   
-          
-          getMaxUsedRow().then((maxrow) => {
-            document.querySelector("#startrow").value = 1
-            document.querySelector("#endrow").value = maxrow
-          })      
+          setMaxRowRange()
+          document.querySelector('#allRowsButton').addEventListener('click', function() {        
+            setMaxRowRange()
+          })
 
           getFirstEmptyColumn().then((column) => {
             document.querySelector("#resultColumn").value = column
@@ -153,6 +152,13 @@ Office.onReady((info) => {
     }
   }
 });
+
+export async function setMaxRowRange() {
+  getMaxUsedRow().then((maxrow) => {
+    document.querySelector("#startrow").value = 1
+    document.querySelector("#endrow").value = maxrow
+  })
+}      
 
 export async function writeToSheet(tableJSON,startRow,startColumn,append) {
   try {
