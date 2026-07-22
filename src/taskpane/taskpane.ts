@@ -121,7 +121,20 @@ Office.onReady((info) => {
                 data.json().then((tableJSON) => {
                   if(batchRanges) { //batch mode
                     updateStatus("Searching row " + (i+1) + " of " + queryBatch.length)
-                    writeToSheet(tableJSON.records.slice(0,2),startRow+i,startColumn,true).then(() => {
+                    var combinedRecords = []
+                    combinedRecords.push(tableJSON.records[0])
+                    var combinedBody = []
+                    for(var j = 1; j < tableJSON.records.length; j++) {
+                      if(j == 1) {
+                        combinedBody = tableJSON.records[1]
+                      } else {
+                        combinedBody = combinedBody.map((field, index) => field + "|" + tableJSON.records[j][index])
+                      }
+                    }
+                    if(combinedBody.length > 0) {
+                      combinedRecords.push(combinedBody)
+                    }
+                    writeToSheet(combinedRecords,startRow+i,startColumn,true).then(() => {
                       completeQueries++
                     })           
                   } else { //query mode
