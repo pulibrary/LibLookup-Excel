@@ -41,6 +41,9 @@ Office.onReady((info) => {
           queryForm?.addEventListener('submit', function(event) {
             event.preventDefault()
             document.getElementById('resultCount').innerHTML = ""
+
+            const pollingInterval = 100
+
             var formData = new FormData(event.target)
             var catalog = formData.get('catalog')
             var query = formData.get('q')
@@ -69,7 +72,7 @@ Office.onReady((info) => {
                 for(var i = 0; i < rangeValues[0].length; i++) {
                   var thisQuery = queryDecoded
                   for(var j = 0; j < rangeValues.length; j++) {
-                    thisQuery = thisQuery.replace(/\[\[[^\]]+\]\]/,rangeValues[j][i])    
+                    thisQuery = thisQuery.replace(/\[\[[^\]]+\]\]/,rangeValues[j][i].toString().replaceAll("\"","\\\""))    
                   }  
                   const queryURL = libLookupDomain + '?format=json&catalog=' + catalog + '&q=' + 
                     encodeURIComponent(thisQuery) + '&displayFields=' + fields + '&start=1&maxRecs=' + maxRecs     
@@ -154,7 +157,7 @@ Office.onReady((info) => {
                   }
                 })
               })
-            },500)    
+            },pollingInterval)    
           })
         })      
       }).catch(error => {
