@@ -9,6 +9,16 @@ var totalResults = -1
 const increment = 50
 const libLookupDomain = "https://localhost:3950/"
 
+const entityMap = {
+  '&amp;': '&',
+  '&lt;': '<',
+  '&gt;': '>',
+  '&quot;': '"',
+  '&#39;': "'",
+  '&apos;': "'",
+  '&nbsp;': ' '
+};
+
 Office.onReady((info) => {
   if (info.host === Office.HostType.Excel) {
     try {  
@@ -64,6 +74,7 @@ Office.onReady((info) => {
             var rangeEnd = document.querySelector("#endrow").value
             const batchRanges = queryDecoded.match(/\[\[[^\]]+\]\]/g)?.map(range => range.replace(/\[\[([A-Z]+)\]\]/g, "$1" + rangeStart + ":$1" + rangeEnd))
             var queryBatch = []
+            var catalogLink = ""
           
             if(batchRanges) { //batch mode
               startRow = parseInt(batchRanges.join().match(/\d+/)?.[0])-1
@@ -81,15 +92,19 @@ Office.onReady((info) => {
                 readyForNext = true
               })                      
             } else { //query mode
-              const initialURL = libLookupDomain + '?format=json&catalog=' + catalog + '&q=' + query + '&displayFields=' + fields + '&start=1&maxRecs=1'
+              const initialURL = libLookupDomain + '?format=json&catalog=' + catalog + '&q=' + encodeURIComponent(queryDecoded) + '&displayFields=' + fields + '&start=1&maxRecs=1'
               fetch(initialURL).then((data) => {
                 data.json().then((tableJSON) => {
+                  if(tableJSON.catalogLink != "" && catalogLink == "") {
+                    catalogLink = tableJSON.catalogLink
+                    document.getElementById("catalogLink").innerHTML = `<a target="_blank" href="${catalogLink}">View in Catalog</a>`
+                  }
                   totalResults = tableJSON.numberOfRecords
                   document.getElementById('resultCount').innerHTML = 'Found ' + totalResults + ' results'
                   var queryMax = Math.min(maxRecs,totalResults)
                   for(var i = 1; i < queryMax; i += increment) {
-                    const queryURL = libLookupDomain + '?format=json&catalog=' + catalog + '&q=' + query + '&displayFields=' + fields + '&start=' + i + '&maxRecs=' + Math.min(increment, queryMax-i+1)
-                    queryBatch.push(queryURL) 
+                    const queryURL = libLookupDomain + '?format=json&catalog=' + catalog + '&q=' + encodeURIComponent(queryDecoded) + '&displayFields=' + fields + '&start=' + i + '&maxRecs=' + Math.min(increment, queryMax-i+1)
+                    queryBatch.push(queryURL)                     
                   }
                   readyForNext = true  
                 })
@@ -200,6 +215,9 @@ export async function writeToSheet(tableJSON,startRow,startColumn,append) {
       console.log(startRow,startColumn,numrows,numcols)
       range.numberFormat = [["@"]];
       range.format.wrapText = false
+      tableJSON = tableJSON.map(function (row) {return row.map(cell => cell.replace(/&[a-z]+;|&#\d+;/gi, function(match) {
+        return entityMap[match] || match;
+      }))})
       range.values = tableJSON.map(function(row: Array<string>) { return row.slice(1)});
       await context.sync();
     })
@@ -207,6 +225,7 @@ export async function writeToSheet(tableJSON,startRow,startColumn,append) {
     console.log(error)
   }
 }
+
 
 function updateStatus(status) {
   document.querySelector('#status').innerHTML = status
