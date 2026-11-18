@@ -20,14 +20,18 @@ const entityMap = {
 };
 
 Office.onReady((info) => {
-  if (info.host === Office.HostType.Excel) {
+  if(document == null) {
+    return
+  }
+  if (info.host === Office.HostType.Excel) {    
     try {  
       var abort = false
       const homepageURL = libLookupDomain + "?pageType=plugin"
       fetch(homepageURL).then(response => { 
-        response.text().then((form) => {
-          document.querySelector('#content').innerHTML = form
-          document.querySelector("form").querySelectorAll("script").forEach((script) => {
+        response.text().then((form) => {     
+          const content = document.querySelector('#content')
+          content && (content.innerHTML = form)
+          document.querySelector("form")?.querySelectorAll("script").forEach((script) => {
             var newScript = document.createElement('script')
             newScript.src = script.src
             newScript.type = script.type
@@ -35,26 +39,28 @@ Office.onReady((info) => {
           })
   
           setMaxRowRange()
-          document.querySelector('#allRowsButton').addEventListener('click', function() {        
+          document.querySelector('#allRowsButton')?.addEventListener('click', function() {        
             setMaxRowRange()
           })
 
           getFirstEmptyColumn().then((column) => {
-            document.querySelector("#resultColumn").value = column
+            const resultColumn: HTMLFormElement | null = document.querySelector("#resultColumn")
+            resultColumn && (resultColumn.value = column)
           })
 
-          document.querySelector('#abortButton').addEventListener('click', function() {        
+          document.querySelector('#abortButton')?.addEventListener('click', function() {        
             abort = true
           })
 
           var queryForm = document.querySelector('#queryForm')
           queryForm?.addEventListener('submit', function(event) {
             event.preventDefault()
-            document.getElementById('resultCount').innerHTML = ""
+            const resultCount = document.getElementById('resultCount')
+            resultCount && (resultCount.innerHTML = "")
 
             const pollingInterval = 100
 
-            var formData = new FormData(event.target)
+            var formData = new FormData(event.target as HTMLFormElement)
             var catalog = formData.get('catalog')
             var query = formData.get('q')
             var fields = formData.get('displayFields')
@@ -74,7 +80,6 @@ Office.onReady((info) => {
             var rangeEnd = document.querySelector("#endrow").value
             const batchRanges = queryDecoded.match(/\[\[[^\]]+\]\]/g)?.map(range => range.replace(/\[\[([A-Z]+)\]\]/g, "$1" + rangeStart + ":$1" + rangeEnd))
             var queryBatch = []
-            var catalogLink = ""
           
             if(batchRanges) { //batch mode
               startRow = parseInt(batchRanges.join().match(/\d+/)?.[0])-1
@@ -95,15 +100,15 @@ Office.onReady((info) => {
               const initialURL = libLookupDomain + '?format=json&catalog=' + catalog + '&q=' + encodeURIComponent(queryDecoded) + '&displayFields=' + fields + '&start=1&maxRecs=1'
               fetch(initialURL).then((data) => {
                 data.json().then((tableJSON) => {
-                  if(tableJSON.catalogLink != "" && catalogLink == "") {
-                    catalogLink = tableJSON.catalogLink
-                    document.getElementById("catalogLink").innerHTML = `<a target="_blank" href="${catalogLink}">View in Catalog</a>`
+                  const catalogLink = document.getElementById("catalogLink")
+                  if(tableJSON.catalogLink != "") {
+                    catalogLink.innerHTML = `<a target="_blank" href="${tableJSON.catalogLink}">View in Catalog</a>`
                   }
                   totalResults = tableJSON.numberOfRecords
                   document.getElementById('resultCount').innerHTML = 'Found ' + totalResults + ' results'
                   var queryMax = Math.min(maxRecs,totalResults)
                   for(var i = 1; i < queryMax; i += increment) {
-                    const queryURL = libLookupDomain + '?format=json&catalog=' + catalog + '&q=' + encodeURIComponent(queryDecoded) + '&displayFields=' + fields + '&start=' + i + '&maxRecs=' + Math.min(increment, queryMax-i+1)
+                    const queryURL = libLookupDomain + '?format=json&catalog=' + catalog + '&q=' + encodeURIComponent(queryDecoded) + '&displayFields=' + fields + '&start=' + i + '&maxRecs=' + increment
                     queryBatch.push(queryURL)                     
                   }
                   readyForNext = true  
@@ -159,17 +164,12 @@ Office.onReady((info) => {
                     console.log(tableJSON)
                     updateStatus("Retrieved " + Math.min(((i+1)*increment),maxRecs,totalResults) + " of " + Math.min(maxRecs,totalResults) + "  records")                    
                     writeToSheet(tableJSON.records,(i>0) ? (i*increment+1) : 0,0,(i>0)).then(() => {
-                      if(i == 0) {
-                        i++
-                        readyForNext = true  
-                      }
                       completeQueries++
                     })            
                   }
-                  if(i>0 || batchRanges) {
-                    i++
-                    readyForNext = true                        
-                  }
+                  i++
+                  readyForNext = true                        
+
                 })
               })
             },pollingInterval)    
@@ -288,7 +288,7 @@ export async function getFirstEmptyColumn() {
   return column
 }
 
-function columnLetterToNumber(letter) {
+function columnLetterToNumber(letter: string) {
   let columnNumber = 0;
   let cleanLetter = letter.toUpperCase();
   
@@ -315,7 +315,7 @@ export async function getMaxUsedRow() {
   return lastRowIndex
 }
 
-export async function runQuery(queryURL) {   
+export async function runQuery(queryURL: string) {   
   const xhr = new XMLHttpRequest();
   xhr.open("GET",queryURL, false)
   xhr.send()
