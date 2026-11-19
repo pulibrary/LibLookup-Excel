@@ -9,7 +9,7 @@ var totalResults = -1
 const increment = 50
 const libLookupDomain = "https://localhost:3950/"
 
-const entityMap = {
+const entityMap: { [key: string]: string } = {
   '&amp;': '&',
   '&lt;': '<',
   '&gt;': '>',
@@ -62,28 +62,35 @@ Office.onReady((info) => {
 
             var formData = new FormData(event.target as HTMLFormElement)
             var catalog = formData.get('catalog')
-            var query = formData.get('q')
+            var query = String(formData.get('q'))
             var fields = formData.get('displayFields')
-            var maxRecs = formData.get('maxRecs')
+            var maxRecs = Number(formData.get('maxRecs'))
             var readyForNext = false
             var startRow = 0
             var startColumn = 0
             abort = false
             totalResults = -1    
-            document.querySelector('#abortButton').disabled = false
-            document.querySelector('#submit').disabled = true
+            const abortButton = document.querySelector('#abortButton') as HTMLButtonElement
+            if(abortButton) {
+              abortButton.disabled = false
+            }
+            const submitButton = document.querySelector('#submit') as HTMLButtonElement
+            if(submitButton) {
+              submitButton.disabled = true
+            }
           
             updateStatus("Searching...")
 
             var queryDecoded = decodeURIComponent(query)
-            var rangeStart = document.querySelector("#startrow").value
-            var rangeEnd = document.querySelector("#endrow").value
+            var rangeStart = formData.get('startrow')
+            var rangeEnd = formData.get('endrow')
+            console.log(rangeStart+"|"+rangeEnd)
             const batchRanges = queryDecoded.match(/\[\[[^\]]+\]\]/g)?.map(range => range.replace(/\[\[([A-Z]+)\]\]/g, "$1" + rangeStart + ":$1" + rangeEnd))
-            var queryBatch = []
+            var queryBatch: string[] = []
           
             if(batchRanges) { //batch mode
-              startRow = parseInt(batchRanges.join().match(/\d+/)?.[0])-1
-              startColumn = columnLetterToNumber(document.querySelector("#resultColumn").value)
+              startRow = Number(rangeStart)-1
+              startColumn = columnLetterToNumber(String(formData.get('resultColumn')))
               getRangeValues(batchRanges).then((rangeValues) => {
                 for(var i = 0; i < rangeValues[0].length; i++) {
                   var thisQuery = queryDecoded
@@ -101,11 +108,11 @@ Office.onReady((info) => {
               fetch(initialURL).then((data) => {
                 data.json().then((tableJSON) => {
                   const catalogLink = document.getElementById("catalogLink")
-                  if(tableJSON.catalogLink != "") {
+                  if(catalogLink && tableJSON.catalogLink != "") {
                     catalogLink.innerHTML = `<a target="_blank" href="${tableJSON.catalogLink}">View in Catalog</a>`
                   }
                   totalResults = tableJSON.numberOfRecords
-                  document.getElementById('resultCount').innerHTML = 'Found ' + totalResults + ' results'
+                  resultCount && (resultCount.innerHTML = 'Found ' + totalResults + ' results')
                   var queryMax = Math.min(maxRecs,totalResults)
                   for(var i = 1; i < queryMax; i += increment) {
                     const queryURL = libLookupDomain + '?format=json&catalog=' + catalog + '&q=' + encodeURIComponent(queryDecoded) + '&displayFields=' + fields + '&start=' + i + '&maxRecs=' + increment
@@ -128,9 +135,14 @@ Office.onReady((info) => {
                   updateStatus("Aborted")                  
                 } else {
                   updateStatus("Done!")
+                  getFirstEmptyColumn().then((column) => {
+                    const resultColumn: HTMLFormElement | null = document.querySelector("#resultColumn")
+                    resultColumn && (resultColumn.value = column)
+                  })
+                  setMaxRowRange() 
                 }
-                document.querySelector('#abortButton').disabled = true
-                document.querySelector('#submit').disabled = false
+                abortButton.disabled = true
+                submitButton.disabled = false
                 return
               }
               if(i == queryBatch.length) {
@@ -146,7 +158,7 @@ Office.onReady((info) => {
                     updateStatus("Searching row " + (i+1) + " of " + queryBatch.length)
                     var combinedRecords = []
                     combinedRecords.push(tableJSON.records[0])
-                    var combinedBody = []
+                    var combinedBody: string[] = []
                     for(var j = 1; j < tableJSON.records.length; j++) {
                       if(j == 1) {
                         combinedBody = tableJSON.records[1]
@@ -161,7 +173,6 @@ Office.onReady((info) => {
                       completeQueries++
                     })           
                   } else { //query mode
-                    console.log(tableJSON)
                     updateStatus("Retrieved " + Math.min(((i+1)*increment),maxRecs,totalResults) + " of " + Math.min(maxRecs,totalResults) + "  records")                    
                     writeToSheet(tableJSON.records,(i>0) ? (i*increment+1) : 0,0,(i>0)).then(() => {
                       completeQueries++
@@ -176,7 +187,10 @@ Office.onReady((info) => {
           })
         })      
       }).catch(error => {
-        document.querySelector("#content").innerHTML = "LibLookup Desktop app is not running" 
+        const content = document.querySelector<HTMLInputElement>("#content")
+        if(content) {
+          content.innerHTML = "LibLookup Desktop app is not running"
+        }
       })
     } catch(error) {
       console.error(error);
@@ -186,12 +200,17 @@ Office.onReady((info) => {
 
 export async function setMaxRowRange() {
   getMaxUsedRow().then((maxrow) => {
-    document.querySelector("#startrow").value = 1
-    document.querySelector("#endrow").value = maxrow
+    const startRowElement = document.querySelector<HTMLInputElement>("#startrow")
+    const endRowElement= document.querySelector<HTMLInputElement>("#endrow")
+    if (startRowElement && endRowElement) {
+      startRowElement.value = "1"
+      endRowElement.value = String(maxrow)
+    }
   })
 }      
 
-export async function writeToSheet(tableJSON,startRow,startColumn,append) {
+export async function writeToSheet(tableJSON: string[][],
+  startRow: number, startColumn: number, append: boolean) {
   try {
     await Excel.run(async (context) => {
       const sheet = context.workbook.worksheets.getActiveWorksheet();
@@ -212,7 +231,6 @@ export async function writeToSheet(tableJSON,startRow,startColumn,append) {
       }
 
       const range = sheet.getRangeByIndexes(startRow,startColumn,numrows,numcols);
-      console.log(startRow,startColumn,numrows,numcols)
       range.numberFormat = [["@"]];
       range.format.wrapText = false
       tableJSON = tableJSON.map(function (row) {return row.map(cell => cell.replace(/&[a-z]+;|&#\d+;/gi, function(match) {
@@ -227,16 +245,19 @@ export async function writeToSheet(tableJSON,startRow,startColumn,append) {
 }
 
 
-function updateStatus(status) {
-  document.querySelector('#status').innerHTML = status
+function updateStatus(status: string) {
+  const statusElement = document.querySelector('#status')
+  if (statusElement) {
+    statusElement.innerHTML = status
+  }
 }
 
 function detectOfficeTheme() {
   // Check if the Office context and theme exist
   if (Office.context && Office.context.officeTheme) {
-    var theme = Office.context.officeTheme.diagnostics;
+    var theme = Office.context.officeTheme;
     // theme.background will return "Dark" or "Light"
-    if (theme?.background === "Dark") {
+    if (theme?.isDarkTheme) {
       document.body.classList.add("office-dark-mode");
     } else {
         document.body.classList.remove("office-dark-mode");
@@ -248,21 +269,21 @@ Office.onReady(function(info) {
     detectOfficeTheme();
 });
 
-export async function getRangeValues(ranges) {
-  var values = []
-    try {
-      await Excel.run(async (context) => {
-        const sheet = context.workbook.worksheets.getActiveWorksheet();
-        for(var i = 0; i < ranges.length; i++) {
-          const selectedRange = sheet.getRange(ranges[i])
-          selectedRange.load('values')
-          await context.sync()
-          values.push(selectedRange.values)
-        }
-      })
-    } catch(error) {
-      console.error(error)
-    }
+export async function getRangeValues(ranges: string[]) {
+  var values: any[][] = []
+  try {
+    await Excel.run(async (context) => {
+      const sheet = context.workbook.worksheets.getActiveWorksheet();
+      for(var i = 0; i < ranges.length; i++) {
+        const selectedRange = sheet.getRange(ranges[i])
+        selectedRange.load('values')
+        await context.sync()
+        values.push(selectedRange.values)
+      }
+    })
+  } catch(error) {
+    console.error(error)
+  }
   return values
 }
 
