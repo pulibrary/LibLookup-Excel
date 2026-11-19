@@ -22,6 +22,12 @@ b {
     font-weight: bold;
 }
 
+#catalog,
+#operator,
+#index,
+#relator,
+#resultField, 
+::picker(select) { appearance: base-select; }
 
 /* Dynamic Dark Mode Styles */
 body.office-dark-mode {
