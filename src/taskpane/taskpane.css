@@ -27,7 +27,7 @@ b {
 #index,
 #relator,
 #resultField, 
-::picker(select) { appearance: base-select; overflow-x: hidden }
+::picker(select) { appearance: base-select; overflow-x: hidden; white-space: nowrap; }
 
 /* Dynamic Dark Mode Styles */
 body.office-dark-mode {
