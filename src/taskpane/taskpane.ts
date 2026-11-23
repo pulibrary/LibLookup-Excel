@@ -23,6 +23,10 @@ Office.onReady((info) => {
   if(document == null) {
     return
   }
+  runLibLookup(info)
+})
+
+function runLibLookup(info: {host: Office.HostType, platform: Office.PlatformType}) {
   if (info.host === Office.HostType.Excel) {    
     try {  
       var abort = false
@@ -196,7 +200,7 @@ Office.onReady((info) => {
       console.error(error);
     }
   }
-});
+}
 
 export async function setMaxRowRange() {
   getMaxUsedRow().then((maxrow) => {
@@ -309,7 +313,7 @@ export async function getFirstEmptyColumn() {
   return column
 }
 
-function columnLetterToNumber(letter: string) {
+export function columnLetterToNumber(letter: string): number {
   let columnNumber = 0;
   let cleanLetter = letter.toUpperCase();
   
