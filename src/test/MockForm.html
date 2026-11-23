@@ -1,0 +1,101 @@
+<form id="queryForm">
+    <link rel="stylesheet" href="./formstyle.css" type="text/css"/>
+    <div>
+        Search: <select title="Catalog" name="catalog" id="catalog"></select>
+    </div>
+    <div>
+        <span class='plugin-only batch' id="batchrows">rows 
+            <input class="rownum" name="startrow" title="startrow" id="startrow" type="number" min=1 step=1 value="1"/>
+                to
+            <input class="rownum" name="endrow" title="endrow" id="endrow" type="number" min=1 step=1 value="1"/>
+            <button class="plugin-only" type="button" id="allRowsButton">All</button>
+        </span>
+    </div>
+    <div class="menuBar">
+        <select title="operator"  id="operator" disabled>
+            <option value="and">AND</option>
+            <option value="or">OR</option>
+            <option value="not">NOT</option>
+        </select> 
+        <select title="index" id="index"></select>
+        <select title="relator" id="relator"></select>
+    </div>
+    <div>
+        <input
+         title="query term"  
+         type="text" 
+         id="queryTerm"
+        />
+        <input 
+         type="hidden"
+         id="queryString"
+         name="q"
+        />
+    </div>
+    <div>
+        <button type="button" id="addTermButton" disabled>Add</button>
+        <button type="button" id="deleteTermButton" disabled>Delete</button>
+        <button type="button" id="clearTermsButton" disabled>Clear</button>
+    </div> 
+    <div class="scroll-container">
+        <select title="searchTerms" id="searchTerms" size="3"></select>
+    </div>       
+    <div>
+        Show:
+        <select title="resultField" id="resultField"></select> 
+        <input title="customResultField" id="customResultField" size="7" disabled/>
+        <input 
+         type="hidden"
+         id="displayFields"
+         name="displayFields"
+        />
+    </div>
+    <div>
+        <button type="button" id="addResultButton">Add</button>
+        <button type="button" id="deleteResultButton" disabled>Delete</button>
+        <button type="button" id="clearResultsButton" disabled>Clear</button>
+        <button type="button" id="moveUpButton" disabled>Up</button>
+        <button type="button" id="moveDownButton" disabled>Down</button>
+    </div> 
+    <div class="scroll-container">
+        <select title="resultFieldsList" id="resultFieldsList" size="3"></select>
+    </div>                   
+    <div class='plugin-only'>
+        <label for='maxRecs'>Maximum records:</label>
+        <input 
+         title="Maximum Records"
+         type="number"
+         id="maxRecs"
+         name="maxRecs"
+         size="10"
+         value="50"
+        />
+    </div>
+    <div class='plugin-only batch'>
+        <label for='resultColumn'>Leftmost result column:</label>
+        <input 
+         title="Leftmost result Column"
+         type="text"
+         id="resultColumn"
+         name="resultColumn"
+         size="5"
+         value="A"
+        />
+    </div>    
+    <div>
+        <button id="submit" type="submit">Search</button>
+        <button class="plugin-only" type="button" id="abortButton" disabled>Abort</button>
+        <span id="catalogLink"></span>
+    </div>
+    <dialog id="secondaryIndexDialog">
+        <h4>Additional Indexes</h4>       
+        <div>
+            <select id="secondaryIndexList" size="10"></select>
+        </div>
+        <div class="dialogFilter">Filter: <input id="secondaryIndexFilter"></input></div>
+        <button type="button" id="submitSecondaryIndexDialog">Select</button>
+        <button type="button" id="closeSecondaryIndexDialog">Cancel</button>
+    </dialog>
+    <script id="menumap" type="application/json"></script>
+    <script defer src ="./dynamicform.js" type="application/javascript"></script>
+</form>
