@@ -10,7 +10,7 @@
     },
     {
       "matchPackageNames": ["typescript"],
-      "matchPackagePrefixes": ["@typescript-eslint/", "@types/"],
+      "matchPackagePrefixes": ["typescript-eslint", "@typescript-eslint/", "@types/"],
       "groupName": "typescript packages"
     }
   ]
