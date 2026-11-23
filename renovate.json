@@ -9,9 +9,9 @@
       "groupName": "babel monorepo"
     },
     {
-      "matchPackageNames": ["typescript"],
-      "matchPackagePrefixes": ["typescript-eslint", "@typescript-eslint/", "@types/"],
-      "groupName": "typescript packages"
+      "matchPackageNames": ["typescript", "typescript-eslint", "/^@typescript-eslint//"],,
+      "matchPackagePrefixes": ["@typescript-eslint/", "@types/"],
+      "groupName": "typescript and eslint"
     }
   ]
 }
