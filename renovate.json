@@ -2,5 +2,16 @@
   "$schema": "https://docs.renovatebot.com/renovate-schema.json",
   "extends": [
     "config:recommended"
+  ],
+  "packageRules": [
+    {
+      "matchPackagePrefixes": ["@babel/"],
+      "groupName": "babel monorepo"
+    },
+    {
+      "matchPackageNames": ["typescript"],
+      "matchPackagePrefixes": ["@typescript-eslint/", "@types/"],
+      "groupName": "typescript packages"
+    }
   ]
 }
